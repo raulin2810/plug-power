@@ -1,0 +1,145 @@
+
+# Copiar archivo
+echo "📄 Copying app file..."
+if [ -f "$HOME/Downloads/plug-power-app/plug-power-iphone.html" ]; then
+    cp "$HOME/Downloads/plug-power-app/plug-power-iphone.html" .
+    echo "✅ Found plug-power-iphone.html"
+else
+    echo "❌ Could not find plug-power-iphone.html"
+    echo "   Expected: ~/Downloads/plug-power-app/plug-power-iphone.html"
+    exit 1
+fi
+
+echo ""
+
+# Crear README
+echo "📝 Creating README.md..."
+cat > README.md << 'EOF'
+# Plug Power Analyzer 📊
+
+Real-time news sentiment analyzer for Plug Power (NASDAQ: PLUG)
+
+## 🎯 Features
+
+- ✅ Real-time sentiment analysis
+- ✅ Investment recommendations: BUY / WAIT / SELL
+- ✅ Live news feeds from NewsAPI
+- ✅ iPhone optimized interface
+- ✅ Auto-updates every 5 minutes
+
+## 📱 Open in iPhone
+
+```
+https://raulin2810.github.io/plug-power/plug-power-iphone.html
+```
+
+## 🚀 How It Works
+
+1. Fetches latest news about Plug Power
+2. Analyzes sentiment (positive/negative/neutral)
+3. Calculates recommendation based on sentiment ratio
+4. Updates automatically every 5 minutes
+
+## 📊 Recommendations
+
+- 🟢 **BUY** - More than 60% positive news
+- 🟡 **WAIT** - Between 40-60% mixed sentiment
+- 🔴 **SELL** - Less than 40% positive news
+
+## ⚖️ Disclaimer
+
+This analysis is for informational purposes only and does NOT constitute financial advice.
+Always consult with a financial advisor before making investment decisions.
+
+---
+
+Created: March 2026
+EOF
+
+echo "✅ README created"
+echo ""
+
+# Git config
+echo "⚙️ Configuring Git..."
+git config --global user.name "Plug Power Bot"
+git config --global user.email "$GITHUB_EMAIL"
+
+echo "✅ Git configured"
+echo ""
+
+# Init repo
+echo "🔧 Initializing repository..."
+git init > /dev/null 2>&1
+git add . > /dev/null 2>&1
+git commit -m "Initial commit: Plug Power Analyzer" > /dev/null 2>&1
+
+echo "✅ Repository initialized"
+echo ""
+
+# URL con credenciales
+REMOTE_URL="https://${GITHUB_USER}:${GITHUB_PASS}@github.com/${GITHUB_USER}/${REPO_NAME}.git"
+
+echo "🌿 Setting main branch..."
+git branch -M main > /dev/null 2>&1
+
+echo "✅ Branch set to main"
+echo ""
+
+# Intentar push
+echo "📤 Pushing to GitHub..."
+echo ""
+
+git remote add origin "$REMOTE_URL" 2>/dev/null
+git push -u origin main 2>&1
+
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║              ✅ SUCCESS! App uploaded!                       ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "📌 Repository created:"
+    echo "   https://github.com/$GITHUB_USER/$REPO_NAME"
+    echo ""
+    echo "🔧 NEXT STEP - Activate GitHub Pages:"
+    echo ""
+    echo "1. Go to:"
+    echo "   https://github.com/$GITHUB_USER/$REPO_NAME/settings"
+    echo ""
+    echo "2. Click 'Pages' in left menu"
+    echo ""
+    echo "3. Source:"
+    echo "   Branch: main"
+    echo "   Folder: / (root)"
+    echo ""
+    echo "4. Click 'Save'"
+    echo ""
+    echo "5. Wait 2-3 minutes for GitHub to process"
+    echo ""
+    echo "📱 Then open in Safari on iPhone:"
+    echo "   https://$GITHUB_USER.github.io/$REPO_NAME/plug-power-iphone.html"
+    echo ""
+    echo "✅ DONE!"
+    echo ""
+else
+    echo ""
+    echo "❌ Error during upload"
+    echo ""
+    echo "This might be because:"
+    echo "1. The repository already exists"
+    echo "2. The credentials are incorrect"
+    echo "3. Network connection issue"
+    echo ""
+    echo "Try creating the repository manually:"
+    echo "1. Go to: https://github.com/new"
+    echo "2. Name: plug-power"
+    echo "3. Public: Yes"
+    echo "4. Create"
+    echo ""
+    echo "Then try running this script again."
+    echo ""
+fi
+
+echo "Press Enter to continue..."
+read
+
