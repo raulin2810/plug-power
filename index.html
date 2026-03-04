@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Plug Power Analyzer - Análisis en Tiempo Real</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Plug Power">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .container {
+            max-width: 100%;
+            width: 100%;
+            padding: 16px;
+            padding-top: max(16px, env(safe-area-inset-top));
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        .header {
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .recommendation {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            color: white;
+            margin-left: -16px;
+            margin-right: -16px;
+            margin-top: -16px;
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .recommendation.positive {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        }
+
+        .recommendation.neutral {
+            background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%);
+        }
+
+        .recommendation.negative {
+            background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%);
+        }
+
+        .recommendation h2 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .recommendation p {
+            font-size: 14px;
+            margin-bottom: 12px;
+            opacity: 0.95;
+            line-height: 1.4;
+        }
+
+        .action-button {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .filter-btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(71, 85, 105, 0.3);
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 13px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .filter-btn.active {
+            background: #2563eb;
+            color: white;
+        }
+
+        .filter-btn:active {
+            opacity: 0.8;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-card.positive {
+            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .stat-card.negative {
+            border-color: rgba(220, 38, 38, 0.3);
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        .stat-card.neutral {
+            border-color: rgba(245, 158, 11, 0.3);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .news-item {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .news-item:active {
+            background: rgba(30, 41, 59, 0.5);
+            transform: scale(0.98);
+        }
+
+        .news-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #f1f5f9;
+            font-size: 14px;
+            line-height: 1.3;
+        }
+
+        .news-description {
+            font-size: 13px;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .news-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(71, 85, 105, 0.3);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: #fca5a5;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .refresh-btn {
+            padding: 10px 16px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:active {
+            background: #1d4ed8;
+            transform: scale(0.95);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 8px;
+        }
+
+        .header-label {
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .sentiment-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            margin-right: 8px;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .sentiment-icon.positive {
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .sentiment-icon.negative {
+            background: rgba(220, 38, 38, 0.2);
+        }
+
+        .sentiment-icon.neutral {
+            background: rgba(245, 158, 11, 0.2);
+        }
+
+        .footer {
+            text-align: center;
+            color: #64748b;
+            font-size: 11px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(71, 85, 105, 0.3);
+            line-height: 1.4;
+        }
+
+        .news-list {
+            max-height: 60vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .stat-number {
+                font-size: 24px;
+            }
+
+            .news-title {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">⚡</div>
+            <div>
+                <h1>Plug Power</h1>
+                <p class="subtitle">ISIN: US72919P2020 | Análisis en Tiempo Real</p>
+            </div>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="recommendation" class="recommendation" style="display: none;">
+            <h2 id="rec-title">Recomendación</h2>
+            <p id="rec-text"></p>
+            <div class="action-button" id="rec-action"></div>
+            <p style="font-size: 11px; margin-top: 8px; opacity: 0.85;" id="rec-stats"></p>
+        </div>
+
+        <div class="header-actions">
+            <div class="header-label">Mostrar:</div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="setFilter('1')">Hoy</button>
+                <button class="filter-btn" onclick="setFilter('7')">Semana</button>
+                <button class="filter-btn" onclick="setFilter('30')">30d</button>
+                <button class="filter-btn" onclick="setFilter('90')">90d</button>
+            </div>
+            <button class="refresh-btn" id="refreshBtn" onclick="fetchNews()">🔄</button>
+        </div>
+
+        <div class="stats-grid" id="stats" style="display: none;">
+            <div class="stat-card positive">
+                <div class="stat-number" id="positive-count">0</div>
+                <div class="stat-label">✅ Positivas</div>
+            </div>
+            <div class="stat-card neutral">
+                <div class="stat-number" id="neutral-count">0</div>
+                <div class="stat-label">⚪ Neutras</div>
+            </div>
+            <div class="stat-card negative">
+                <div class="stat-number" id="negative-count">0</div>
+                <div class="stat-label">❌ Negativas</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-bottom: 12px; font-size: 15px;">📰 Noticias</h3>
+            <div id="newsList" class="news-list"></div>
+        </div>
+
+        <div class="footer">
+            ⚠️ Análisis orientativo. No constituye asesoramiento financiero. Consulta un asesor profesional antes de tomar decisiones de inversión.
+        </div>
+    </div>
+
+    <script>
+        let allNews = [];
+        let currentFilter = '7';
+
+        const sentimentKeywords = {
+            positive: [
+                'surge', 'soars', 'rallies', 'gains', 'jumps', 'climbs', 'rises', 'boost', 'bullish',
+                'growth', 'expansion', 'agreement', 'deal', 'partnership', 'success', 'record',
+                'upgrade', 'outperform', 'beat', 'strong', 'positive', 'momentum', 'upbeat',
+                'improvement', 'investment', 'funding', 'breakthrough', 'innovation', 'reaches',
+                'achieves', 'announces', 'secures', 'wins', 'advances', 'approves', 'favorable',
+                'prosper', 'thrive', 'clean energy', 'renewable', 'subsidy', 'support', 'invests',
+                'rally', 'opportunity', 'optimism', 'confidence', 'accelerate', 'leading', 'strong'
+            ],
+            negative: [
+                'plummets', 'crashes', 'declines', 'losses', 'falls', 'drops', 'slumps', 'bearish',
+                'concerns', 'risks', 'challenges', 'downgrade', 'underperform', 'miss', 'weak',
+                'negative', 'decline', 'setback', 'downturn', 'recession', 'bankruptcy', 'fraud',
+                'scandal', 'failure', 'delay', 'lawsuit', 'investigation', 'danger', 'threat',
+                'selloff', 'tumble', 'struggle', 'difficulty', 'loses', 'reduced', 'cut', 'warns',
+                'caution', 'skepticism', 'uncertainty', 'volatile', 'risk', 'concern', 'worries'
+            ]
+        };
+
+        function analyzeSentiment(text) {
+            if (!text) return 'neutral';
+            const lower = text.toLowerCase();
+            const pos = sentimentKeywords.positive.filter(w => lower.includes(w)).length;
+            const neg = sentimentKeywords.negative.filter(w => lower.includes(w)).length;
+            
+            if (pos > neg) return 'positive';
+            if (neg > pos) return 'negative';
+            return 'neutral';
+        }
+
+        function setFilter(days) {
+            currentFilter = days;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            updateDisplay();
+        }
+
+        async function fetchNews() {
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳';
+            
+            try {
+                const corsProxy = 'https://api.allorigins.win/raw?url=';
+                const newsUrl = `https://newsapi.org/v2/everything?q=Plug%20Power&sortBy=publishedAt&language=en&pageSize=50&apiKey=ce00c0d437a1475099e3317f17cd3106`;
+                
+                const response = await fetch(corsProxy + encodeURIComponent(newsUrl));
+                const data = await response.json();
+                
+                if (data.articles && data.articles.length > 0) {
+                    allNews = data.articles.map((article, i) => ({
+                        id: i,
+                        title: article.title || 'Sin título',
+                        description: article.description || article.content || 'Sin descripción',
+                        publishedAt: new Date(article.publishedAt),
+                        source: article.source?.name || 'Fuente desconocida',
+                        url: article.url,
+                        sentiment: analyzeSentiment((article.title || '') + ' ' + (article.description || ''))
+                    }));
+                    document.getElementById('error').style.display = 'none';
+                } else {
+                    throw new Error('No articles');
+                }
+            } catch (err) {
+                console.log('Usando noticias de demostración');
+                allNews = [
+                    {
+                        id: 1,
+                        title: 'Plug Power Stock Surges 13% on Strategic Partnership',
+                        description: 'Plug Power announced a major partnership with leading automotive manufacturer, driving strong investor optimism in hydrogen fuel cell technology.',
+                        publishedAt: new Date(Date.now() - 0.1 * 86400000),
+                        source: 'Reuters',
+                        url: 'https://reuters.com',
+                        sentiment: 'positive'
+                    },
+                    {
+                        id: 2,
+                        title: 'Green Hydrogen Market Shows Strong Growth Momentum',
+                        description: 'Industry analysts report accelerating adoption of green hydrogen solutions, with Plug Power positioned as a market leader.',
+                        publishedAt: new Date(Date.now() - 0.5 * 86400000),
+                        source: 'Bloomberg',
+                        url: 'https://bloomberg.com',
+                        sentiment: 'positive'
+                    },
+                    {
+                        id: 3,
+                        title: 'Government Invests Billions in Hydrogen Infrastructure',
+                        description: 'Federal government announces major funding for hydrogen economy development, benefiting fuel cell companies like Plug Power.',
+                        publishedAt: new Date(Date.now() - 86400000),
+                        source: 'Yahoo Finance',
+                        url: 'https://finance.yahoo.com',
+                        sentiment: 'positive'
+                    },
+                    {
+                        id: 4,
+                        title: 'Hydrogen Fuel Cells Face Market Challenges',
+                        description: 'Market analysts discuss challenges as battery technology improves competitively in the energy sector.',
+                        publishedAt: new Date(Date.now() - 3 * 86400000),
+                        source: 'CNBC',
+                        url: 'https://cnbc.com',
+                        sentiment: 'neutral'
+                    }
+                ];
+                document.getElementById('error').innerHTML = 
+                    '✅ Mostrando datos de demostración. Las noticias reales se cargan automáticamente cuando la API está disponible.';
+                document.getElementById('error').style.display = 'block';
+            }
+
+            updateDisplay();
+            btn.disabled = false;
+            btn.textContent = '🔄';
+        }
+
+        function updateDisplay() {
+            const now = new Date();
+            const days = parseInt(currentFilter);
+            const cutoff = new Date(now.getTime() - days * 86400000);
+            
+            const filtered = allNews.filter(n => n.publishedAt >= cutoff);
+            
+            const stats = { positive: 0, negative: 0, neutral: 0 };
+            filtered.forEach(n => stats[n.sentiment]++);
+            
+            document.getElementById('positive-count').textContent = stats.positive;
+            document.getElementById('neutral-count').textContent = stats.neutral;
+            document.getElementById('negative-count').textContent = stats.negative;
+            document.getElementById('stats').style.display = 'grid';
+
+            if (filtered.length > 0) {
+                const total = filtered.length;
+                const posRatio = stats.positive / total;
+                
+                let rec, action, color;
+                if (posRatio > 0.6) {
+                    rec = '✅ Panorama MUY POSITIVO\nNoticias favorables dominan claramente.';
+                    action = '🟢 COMPRAR MÁS';
+                    color = 'positive';
+                } else if (posRatio > 0.4) {
+                    rec = '⚠️ Panorama MIXTO\nHay oportunidades y riesgos.';
+                    action = '🟡 ESPERAR Y MONITOREAR';
+                    color = 'neutral';
+                } else {
+                    rec = '❌ Panorama NEGATIVO\nNoticias desfavorables predominan.';
+                    action = '🔴 VENDER / REDUCIR';
+                    color = 'negative';
+                }
+                
+                document.getElementById('recommendation').className = 'recommendation ' + color;
+                document.getElementById('rec-text').textContent = rec;
+                document.getElementById('rec-action').textContent = action;
+                document.getElementById('rec-stats').textContent = 
+                    `${filtered.length} noticias • ${stats.positive} ✅ ${stats.neutral} ⚪ ${stats.negative} ❌`;
+                document.getElementById('recommendation').style.display = 'block';
+            }
+
+            const html = filtered.map(n => `
+                <a href="${n.url}" target="_blank" class="news-item">
+                    <div style="display: flex; gap: 8px;">
+                        <div class="sentiment-icon ${n.sentiment}">
+                            ${n.sentiment === 'positive' ? '📈' : n.sentiment === 'negative' ? '📉' : '⚪'}
+                        </div>
+                        <div style="flex: 1;">
+                            <div class="news-title">${n.title}</div>
+                            <div class="news-description">${n.description.substring(0, 120)}...</div>
+                            <div class="news-meta">
+                                <span>${n.source}</span>
+                                <span>${formatDate(n.publishedAt)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+
+            document.getElementById('newsList').innerHTML = html || '<p style="text-align: center; color: #64748b; padding: 20px;">No hay noticias en este período.</p>';
+        }
+
+        function formatDate(date) {
+            const now = new Date();
+            const diff = Math.floor((now - date) / 60000);
+            
+            if (diff < 1) return 'Ahora';
+            if (diff < 60) return `${diff}m`;
+            const hours = Math.floor(diff / 60);
+            if (hours < 24) return `${hours}h`;
+            const days = Math.floor(hours / 24);
+            return `${days}d`;
+        }
+
+        fetchNews();
+        setInterval(fetchNews, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
